@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Identification</title>
+    <style>
+        /* Add some basic styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef7ef; /* Background color in green tones */
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff; /* White background for content */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Box shadow for a card-like look */
+            border-radius: 10px;
+        }
+        h1 {
+            color: #4CAF50; /* Green title color */
+        }
+        #image-input {
+            margin: 20px auto;
+            display: block;
+            padding: 10px;
+            border: 2px solid #4CAF50; /* Green border for image input */
+            border-radius: 5px;
+            background-color: #ffffff;
+            color: #4CAF50;
+            cursor: pointer;
+        }
+        #image-preview {
+            margin: 20px auto;
+            text-align: center;
+            
+        }
+        #selected-image {
+            max-width: 100%;
+            max-height: 300px;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45A049; /* Darker green on hover */
+        }
+        #result {
+            margin-top: 20px;
+            text-align: center;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Plant Identification</h1>
+        <input type="file" id="image-input" accept="image/*" onchange="previewImage()">
+        <div class="image-preview" id="image-preview">
+            <p>Selected Image:</p>
+            <img id="selected-image" src="#" alt="Selected Image">
+        </div>
+        <button onclick="identifyPlant()">Identify Plant</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function identifyPlant() {
+            const fileInput = document.getElementById('image-input');
+            const resultDiv = document.getElementById('result');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Please select an image.');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append('Api-Key', 'q2wCd8VUiOZlz3T3LpDaDTx1d4TdW5pT5307N9EMU5PkTCkDvv');
+
+            const formdata = new FormData();
+            formdata.append('image1', fileInput.files[0], 'image.jpg');
+
+            const requestOptions = {
+                method: 'POST',
+                headers: myHeaders,
+                body: formdata,
+                redirect: 'follow',
+            };
+
+            fetch("https://plant.id/api/v3/identification?details=common_names,url,image&language=en", requestOptions)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    displayPlantInfo(result);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultDiv.innerHTML = 'An error occurred.';
+                });
+        }
+        function displayPlantInfo(data) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = ''; // Clear previous content
+
+    if (data && data.result && data.result.classification) {
+        const plantSuggestions = data.result.classification.suggestions;
+        if (plantSuggestions.length > 0) {
+            // Create a table to display plant info
+            const table = document.createElement('table');
+            const tableHeader = table.createTHead();
+            const headerRow = tableHeader.insertRow();
+            const nameCell = headerRow.insertCell(0);
+            const commonNamesCell = headerRow.insertCell(1);
+            const probabilityCell = headerRow.insertCell(2);
+            const urlCell = headerRow.insertCell(3);
+            const imageCell = headerRow.insertCell(4);
+            nameCell.textContent = 'Plant Name';
+            commonNamesCell.textContent = 'Common Names';
+            probabilityCell.textContent = 'Probability';
+            urlCell.textContent = 'Know More';
+            imageCell.textContent = 'Image';
+
+            // Populate the table with plant data
+            const tableBody = table.createTBody();
+            plantSuggestions.forEach(suggestion => {
+                const row = tableBody.insertRow();
+                const nameCell = row.insertCell(0);
+                const commonNamesCell = row.insertCell(1);
+                const probabilityCell = row.insertCell(2);
+                const urlCell = row.insertCell(3);
+                const imageCell = row.insertCell(4);
+                nameCell.textContent = suggestion.name;
+                commonNamesCell.textContent = suggestion.details.common_names
+                    ? suggestion.details.common_names.join(', ')
+                    : 'N/A';
+                probabilityCell.textContent = suggestion.probability.toFixed(2); // Display probability with two decimal places
+                urlCell.innerHTML = `<a href="${suggestion.details.url}" target="_blank">Link</a>`;
+                //urlCell.innerHTML = `<a href="${suggestion.details.url}" target="_blank">${suggestion.details.url}</a>`;
+
+                if (suggestion.details.image) {
+                    const img = document.createElement('img');
+                    img.src = suggestion.details.image.value;
+                    img.alt = 'Plant Image';
+                    img.style.maxWidth = '100px'; // Set the maximum width for the image
+                    imageCell.appendChild(img);
+                } else {
+                    imageCell.textContent = 'N/A';
+                }
+            });
+
+            resultDiv.appendChild(table);
+        } else {
+            resultDiv.innerHTML = 'No plant suggestions available.';
+        }
+    } else {
+        resultDiv.innerHTML = 'No plant information available.';
+    }
+}
+
+     
+        
+        function previewImage() {
+            const fileInput = document.getElementById('image-input');
+            const imagePreview = document.getElementById('selected-image');
+            const imageUpload = document.querySelector('.image-upload');
+            
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imagePreview.src = e.target.result;
+                    imageUpload.style.border = 'none'; // Remove border on image upload
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>
