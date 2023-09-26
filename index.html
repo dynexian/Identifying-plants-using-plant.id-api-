@@ -102,6 +102,9 @@
 
             const formdata = new FormData();
             formdata.append('image1', fileInput.files[0], 'image.jpg');
+            formdata.append("latitude", "22.233");
+            formdata.append("longitude", "84.836");
+            formdata.append("similar_images", "true");
 
             const requestOptions = {
                 method: 'POST',
